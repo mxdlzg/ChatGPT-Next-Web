@@ -1,6 +1,6 @@
 import { trimTopic, getMessageTextContent } from "../utils";
 
-import { createJSONStorage } from 'zustand/middleware'
+import { createJSONStorage } from "zustand/middleware";
 import Locale, { getLang } from "../locales";
 import { showToast } from "../components/ui-lib";
 import { ModelConfig, ModelType, useAppConfig } from "./config";
@@ -169,7 +169,25 @@ const DEFAULT_CHAT_STATE = {
   currentSessionIndex: 0,
 };
 
-export const useChatStore = createPersistStore(
+interface ChatState {
+  sessions: ChatSession[];
+  currentSessionIndex: number;
+}
+
+interface ChatMethods {
+  clearSessions(): void;
+  selectSession(index: number): void;
+  moveSession(from: number, to: number): void;
+  newSession(mask?: Mask): void;
+  nextSession(delta: number): void;
+  clearAllData(): void;
+  currentSession(): ChatSession;
+  deleteSession(index: number): void;
+  updateCurrentSession(updater: (session: ChatSession) => void): void;
+  onUserInput(content: string, attachImages?: string[]): Promise<void>;
+}
+
+export const useChatStore = createPersistStore<ChatState, ChatMethods>(
   DEFAULT_CHAT_STATE,
   (set, _get) => {
     function get() {
@@ -291,18 +309,31 @@ export const useChatStore = createPersistStore(
         );
       },
 
+      // currentSession() {
+      //   let index = get().currentSessionIndex;
+      //   const sessions = get().sessions;
+
+      //   if (index < 0 || index >= sessions.length) {
+      //     index = Math.min(sessions.length - 1, Math.max(0, index));
+      //     set(() => ({ currentSessionIndex: index }));
+      //   }
+
+      //   const session = sessions[index];
+
+      //   return session;
+      // },
+
       currentSession() {
-        let index = get().currentSessionIndex;
-        const sessions = get().sessions;
+        const state = _get();
+        let index = state.currentSessionIndex;
+        const sessions = state.sessions;
 
         if (index < 0 || index >= sessions.length) {
           index = Math.min(sessions.length - 1, Math.max(0, index));
-          set(() => ({ currentSessionIndex: index }));
+          set({ currentSessionIndex: index });
         }
 
-        const session = sessions[index];
-
-        return session;
+        return sessions[index];
       },
 
       onNewMessage(message: ChatMessage) {
@@ -499,7 +530,7 @@ export const useChatStore = createPersistStore(
         const maxTokenThreshold = modelConfig.max_tokens;
 
         // get recent messages as much as possible
-        const reversedRecentMessages = [];
+        const reversedRecentMessages: ChatMessage[] = [];
         for (
           let i = totalMessageCount - 1, tokenCount = 0;
           i >= contextStartIndex && tokenCount < maxTokenThreshold;
@@ -720,6 +751,6 @@ export const useChatStore = createPersistStore(
 
       return newState as any;
     },
-    storage: createJSONStorage(()=> getIndexedDbStorage)
+    storage: createJSONStorage(() => getIndexedDbStorage),
   },
 );
