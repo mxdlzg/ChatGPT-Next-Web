@@ -1,5 +1,6 @@
 import { trimTopic, getMessageTextContent } from "../utils";
 
+import { createJSONStorage } from 'zustand/middleware'
 import Locale, { getLang } from "../locales";
 import { showToast } from "../components/ui-lib";
 import { ModelConfig, ModelType, useAppConfig } from "./config";
@@ -25,7 +26,7 @@ import { ChatControllerPool } from "../client/controller";
 import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
-import { createPersistStore } from "../utils/store";
+import { createPersistStore, getIndexedDbStorage } from "../utils/store";
 import { collectModelsWithDefaultModel } from "../utils/model";
 import { useAccessStore } from "./access";
 
@@ -719,5 +720,6 @@ export const useChatStore = createPersistStore(
 
       return newState as any;
     },
+    storage: createJSONStorage(()=> getIndexedDbStorage)
   },
 );
